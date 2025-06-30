@@ -217,16 +217,16 @@ private final class ReviewCellLayout {
         ratingImageViewFrame = CGRect(origin: CGPoint(x: nameX, y: ratingY), size: ratingSize)
         // Текст
         let textY = max(avatarFrame.maxY, ratingImageViewFrame.maxY) + ratingToTextSpacing
-        let textWidth = width
+        let contentLeft = nameLabelFrame.origin.x
+        let contentWidth = maxWidth - contentLeft - insets.right
         var currentTextHeight: CGFloat = 0
         if !config.reviewText.isEmpty() {
             currentTextHeight = (config.reviewText.font() ?? UIFont.systemFont(ofSize: 15)).lineHeight * CGFloat(config.maxLines)
         }
-        let textSize: CGSize = !config.reviewText.isEmpty() ? config.reviewText.boundingRect(width: textWidth, height: currentTextHeight).size : .zero
-        let contentLeft = nameLabelFrame.origin.x
+        let textSize: CGSize = !config.reviewText.isEmpty() ? config.reviewText.boundingRect(width: contentWidth, height: currentTextHeight).size : .zero
         reviewTextLabelFrame = CGRect(origin: CGPoint(x: contentLeft, y: textY), size: textSize)
         var maxY = reviewTextLabelFrame.maxY + reviewTextToCreatedSpacing
-        let actualTextHeight: CGFloat = !config.reviewText.isEmpty() ? config.reviewText.boundingRect(width: textWidth).size.height : 0
+        let actualTextHeight: CGFloat = !config.reviewText.isEmpty() ? config.reviewText.boundingRect(width: contentWidth).size.height : 0
         let showShowMoreButton = config.maxLines != .zero && actualTextHeight > currentTextHeight
         if showShowMoreButton {
             showMoreButtonFrame = CGRect(
@@ -239,7 +239,7 @@ private final class ReviewCellLayout {
         }
         createdLabelFrame = CGRect(
             origin: CGPoint(x: contentLeft, y: maxY),
-            size: config.created.boundingRect(width: width).size
+            size: config.created.boundingRect(width: contentWidth).size
         )
         return createdLabelFrame.maxY + insets.bottom
     }
@@ -250,3 +250,20 @@ private final class ReviewCellLayout {
 
 fileprivate typealias Config = ReviewCellConfig
 fileprivate typealias Layout = ReviewCellLayout
+
+final class ReviewsCountCell: UITableViewCell {
+    static let reuseId = "ReviewsCountCell"
+    let countLabel = UILabel()
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        countLabel.textAlignment = .center
+        countLabel.font = UIFont.systemFont(ofSize: 15, weight: .regular)
+        countLabel.textColor = .secondaryLabel
+        contentView.addSubview(countLabel)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        countLabel.frame = contentView.bounds
+    }
+}
