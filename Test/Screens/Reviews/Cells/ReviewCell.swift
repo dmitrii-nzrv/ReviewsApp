@@ -121,6 +121,8 @@ final class ReviewCell: UITableViewCell {
         reviewTextLabel.frame = layout.reviewTextLabelFrame
         createdLabel.frame = layout.createdLabelFrame
         showMoreButton.frame = layout.showMoreButtonFrame
+        // Показываем кнопку только если она нужна
+        showMoreButton.isHidden = layout.showMoreButtonFrame == .zero
     }
 
 }
@@ -151,6 +153,7 @@ private extension ReviewCell {
         contentView.addSubview(showMoreButton)
         showMoreButton.contentVerticalAlignment = .fill
         showMoreButton.setAttributedTitle(Config.showMoreText, for: .normal)
+        showMoreButton.addTarget(self, action: #selector(showMoreTapped), for: .touchUpInside)
     }
     
     func setupAvatarImage() {
@@ -168,6 +171,11 @@ private extension ReviewCell {
 
     func setupRatingImageView() {
         contentView.addSubview(ratingImageView)
+    }
+
+    @objc func showMoreTapped() {
+        guard let config = config else { return }
+        config.onTapShowMore(config.id)
     }
 
 }
