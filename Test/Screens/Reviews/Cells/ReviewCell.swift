@@ -203,30 +203,34 @@ private final class ReviewCellLayout {
         let width = maxWidth - insets.left - insets.right
         // Аватар
         avatarFrame = CGRect(origin: CGPoint(x: insets.left, y: insets.top), size: Self.avatarSize)
-        // Имя
+        // Имя + рейтинг: вертикальное центрирование относительно аватара
+        let nameHeight: CGFloat = 18
+        let ratingHeight: CGFloat = 18
+        let blockHeight = nameHeight + usernameToRatingSpacing + ratingHeight
+        let blockY = insets.top + (Self.avatarSize.height - blockHeight) / 2
         let nameX = avatarFrame.maxX + avatarToUsernameSpacing
-        let nameY = insets.top
-        let nameSize = CGSize(width: width - Self.avatarSize.width - avatarToUsernameSpacing, height: 18)
+        let nameY = blockY
+        let nameSize = CGSize(width: width - Self.avatarSize.width - avatarToUsernameSpacing, height: nameHeight)
         nameLabelFrame = CGRect(origin: CGPoint(x: nameX, y: nameY), size: nameSize)
-        // Рейтинг
         let ratingY = nameLabelFrame.maxY + usernameToRatingSpacing
-        let ratingSize = CGSize(width: 100, height: 18)
+        let ratingSize = CGSize(width: 100, height: ratingHeight)
         ratingImageViewFrame = CGRect(origin: CGPoint(x: nameX, y: ratingY), size: ratingSize)
         // Текст
-        let textY = ratingImageViewFrame.maxY + ratingToTextSpacing
+        let textY = max(avatarFrame.maxY, ratingImageViewFrame.maxY) + ratingToTextSpacing
         let textWidth = width
         var currentTextHeight: CGFloat = 0
         if !config.reviewText.isEmpty() {
             currentTextHeight = (config.reviewText.font() ?? UIFont.systemFont(ofSize: 15)).lineHeight * CGFloat(config.maxLines)
         }
         let textSize: CGSize = !config.reviewText.isEmpty() ? config.reviewText.boundingRect(width: textWidth, height: currentTextHeight).size : .zero
-        reviewTextLabelFrame = CGRect(origin: CGPoint(x: insets.left, y: textY), size: textSize)
+        let contentLeft = nameLabelFrame.origin.x
+        reviewTextLabelFrame = CGRect(origin: CGPoint(x: contentLeft, y: textY), size: textSize)
         var maxY = reviewTextLabelFrame.maxY + reviewTextToCreatedSpacing
         let actualTextHeight: CGFloat = !config.reviewText.isEmpty() ? config.reviewText.boundingRect(width: textWidth).size.height : 0
         let showShowMoreButton = config.maxLines != .zero && actualTextHeight > currentTextHeight
         if showShowMoreButton {
             showMoreButtonFrame = CGRect(
-                origin: CGPoint(x: insets.left, y: maxY),
+                origin: CGPoint(x: contentLeft, y: maxY),
                 size: Self.showMoreButtonSize
             )
             maxY = showMoreButtonFrame.maxY + showMoreToCreatedSpacing
@@ -234,7 +238,7 @@ private final class ReviewCellLayout {
             showMoreButtonFrame = .zero
         }
         createdLabelFrame = CGRect(
-            origin: CGPoint(x: insets.left, y: maxY),
+            origin: CGPoint(x: contentLeft, y: maxY),
             size: config.created.boundingRect(width: width).size
         )
         return createdLabelFrame.maxY + insets.bottom
