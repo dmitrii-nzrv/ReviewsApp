@@ -4,22 +4,20 @@ import UIKit
 final class ReviewsViewModel: NSObject {
 
     /// Замыкание, вызываемое при изменении `state`.
-    var onStateChange: ((State) -> Void)?
+    var onStateChange: ((State, [IndexPath]?) -> Void)?
 
     private var state: State
     private let reviewsProvider: ReviewsProvider
-    private let ratingRenderer: RatingRenderer
+    private let ratingRenderer = RatingRenderer()
     private let decoder: JSONDecoder
 
     init(
         state: State = State(),
         reviewsProvider: ReviewsProvider = ReviewsProvider(),
-        ratingRenderer: RatingRenderer = RatingRenderer(),
         decoder: JSONDecoder = JSONDecoder()
     ) {
         self.state = state
         self.reviewsProvider = reviewsProvider
-        self.ratingRenderer = ratingRenderer
         self.decoder = decoder
     }
 
@@ -48,17 +46,27 @@ private extension ReviewsViewModel {
 
     /// Метод обработки получения отзывов.
     func gotReviews(_ result: ReviewsProvider.GetReviewsResult) {
-        do {
-            let data = try result.get()
-            let reviews = try decoder.decode(Reviews.self, from: data)
-            state.count = reviews.count
-            state.items += reviews.items.map(makeReviewItem)
-            state.offset += state.limit
-            state.shouldLoad = state.offset < reviews.count
-        } catch {
-            state.shouldLoad = true
+        // Парсим и готовим данные в background, UI обновляем на главном потоке
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            do {
+                let data = try result.get()
+                let reviews = try self.decoder.decode(Reviews.self, from: data)
+                let newItems = reviews.items.map { self.makeReviewItem($0) }
+                DispatchQueue.main.async {
+                    self.state.count = reviews.count
+                    let oldCount = self.state.items.count
+                    self.state.items += newItems
+                    self.state.offset += self.state.limit
+                    self.state.shouldLoad = self.state.offset < reviews.count
+                    let newCount = self.state.items.count
+                    let indexPaths = (oldCount..<newCount).map { IndexPath(row: $0, section: 0) }
+                    self.onStateChange?(self.state, indexPaths)
+                }
+            } catch {
+                self.state.shouldLoad = true
+            }
         }
-        onStateChange?(state)
     }
 
     /// Метод, вызываемый при нажатии на кнопку "Показать полностью...".
@@ -70,7 +78,7 @@ private extension ReviewsViewModel {
         else { return }
         item.maxLines = .zero
         state.items[index] = item
-        onStateChange?(state)
+        onStateChange?(state, nil)
     }
 
 }
@@ -87,11 +95,10 @@ private extension ReviewsViewModel {
         let item = ReviewItem(
             reviewText: reviewText,
             created: created,
-//          Если  ReviewCellConfig где-то хранится дольше, чем ViewModel, то замыкание будет держать сильную ссылку на self и будет утечка памяти.
-//          onTapShowMore: showMoreReview, userName: "\(review.first_name) \(review.last_name)",
             onTapShowMore: { [weak self] id in self?.showMoreReview(with: id) },
             userName: "\(review.first_name) \(review.last_name)",
-            userRating: review.rating
+            userRating: review.rating,
+            ratingRenderer: ratingRenderer
         )
         return item
     }

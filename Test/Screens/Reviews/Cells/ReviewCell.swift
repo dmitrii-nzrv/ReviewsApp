@@ -7,7 +7,7 @@ struct ReviewCellConfig {
     static let reuseId = String(describing: ReviewCellConfig.self)
 
     /// Идентификатор конфигурации. Можно использовать для поиска конфигурации в массиве.
-    let id = UUID()
+    var id: UUID
     /// Текст отзыва.
     let reviewText: NSAttributedString
     /// Максимальное отображаемое количество строк текста. По умолчанию 3.
@@ -20,9 +20,32 @@ struct ReviewCellConfig {
     let userName: String?
     /// Рейтинг
     let userRating: Int?
+    let ratingRenderer: RatingRenderer
 
     /// Объект, хранящий посчитанные фреймы для ячейки отзыва.
-    fileprivate let layout = ReviewCellLayout()
+    let layout: ReviewCellLayout
+    var cachedHeight: CGFloat {
+        layout.height(config: self, maxWidth: UIScreen.main.bounds.width)
+    }
+
+    init(
+        reviewText: NSAttributedString,
+        created: NSAttributedString,
+        onTapShowMore: @escaping (UUID) -> Void,
+        userName: String?,
+        userRating: Int?,
+        ratingRenderer: RatingRenderer
+    ) {
+        self.reviewText = reviewText
+        self.created = created
+        self.onTapShowMore = onTapShowMore
+        self.userName = userName
+        self.userRating = userRating
+        self.ratingRenderer = ratingRenderer
+        self.id = UUID()
+        self.maxLines = 3
+        self.layout = ReviewCellLayout()
+    }
 
 }
 
@@ -40,10 +63,9 @@ extension ReviewCellConfig: TableCellConfig {
         cell.config = self
         // Имя пользователя
         cell.nameLabel.text = userName
-        // Рейтинг
+        // Рейтинг (используем кэшированный renderer)
         if let rating = userRating {
-            let renderer = RatingRenderer()
-            cell.ratingImageView.image = renderer.ratingImage(rating)
+            cell.ratingImageView.image = ratingRenderer.ratingImage(rating)
         } else {
             cell.ratingImageView.image = nil
         }
@@ -51,8 +73,9 @@ extension ReviewCellConfig: TableCellConfig {
 
     /// Метод, возвращаюший высоту ячейки с данным ограничением по размеру.
     /// Вызывается из `heightForRowAt:` делегата таблицы.
-    func height(with size: CGSize) -> CGFloat {
-        layout.height(config: self, maxWidth: size.width)
+     func height(with size: CGSize) -> CGFloat {
+        // Возвращаем кэшированную высоту (лениво вычисляется один раз)
+        return cachedHeight
     }
 
 }
@@ -71,14 +94,14 @@ private extension ReviewCellConfig {
 
 final class ReviewCell: UITableViewCell {
 
-    fileprivate var config: Config?
+    var config: Config?
 
-    fileprivate let reviewTextLabel = UILabel()
-    fileprivate let createdLabel = UILabel()
-    fileprivate let showMoreButton = UIButton()
-    fileprivate let avatarImage = UIImageView()
-    fileprivate let nameLabel = UILabel()
-    fileprivate let ratingImageView = UIImageView()
+    let reviewTextLabel = UILabel()
+    let createdLabel = UILabel()
+    let showMoreButton = UIButton()
+    let avatarImage = UIImageView()
+    let nameLabel = UILabel()
+    let ratingImageView = UIImageView()
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -153,13 +176,13 @@ private extension ReviewCell {
 
 /// Класс, в котором происходит расчёт фреймов для сабвью ячейки отзыва.
 /// После расчётов возвращается актуальная высота ячейки.
-private final class ReviewCellLayout {
+final class ReviewCellLayout {
 
     // MARK: - Размеры
 
-    fileprivate static let avatarSize = CGSize(width: 36.0, height: 36.0)
-    fileprivate static let avatarCornerRadius = 18.0
-    fileprivate static let photoCornerRadius = 8.0
+    static let avatarSize = CGSize(width: 36.0, height: 36.0)
+    static let avatarCornerRadius = 18.0
+    static let photoCornerRadius = 8.0
 
     private static let photoSize = CGSize(width: 55.0, height: 66.0)
     private static let showMoreButtonSize = Config.showMoreText.size()
@@ -248,8 +271,8 @@ private final class ReviewCellLayout {
 
 // MARK: - Typealias
 
-fileprivate typealias Config = ReviewCellConfig
-fileprivate typealias Layout = ReviewCellLayout
+typealias Config = ReviewCellConfig
+typealias Layout = ReviewCellLayout
 
 final class ReviewsCountCell: UITableViewCell {
     static let reuseId = "ReviewsCountCell"
