@@ -84,7 +84,8 @@ private extension ReviewsViewModel {
         let item = ReviewItem(
             reviewText: reviewText,
             created: created,
-            onTapShowMore: showMoreReview
+            onTapShowMore: showMoreReview, userName: "\(review.first_name) \(review.last_name)",
+            userRating: review.rating
         )
         return item
     }
