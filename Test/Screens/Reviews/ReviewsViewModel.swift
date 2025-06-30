@@ -87,7 +87,10 @@ private extension ReviewsViewModel {
         let item = ReviewItem(
             reviewText: reviewText,
             created: created,
-            onTapShowMore: showMoreReview, userName: "\(review.first_name) \(review.last_name)",
+//          Если  ReviewCellConfig где-то хранится дольше, чем ViewModel, то замыкание будет держать сильную ссылку на self и будет утечка памяти.
+//          onTapShowMore: showMoreReview, userName: "\(review.first_name) \(review.last_name)",
+            onTapShowMore: { [weak self] id in self?.showMoreReview(with: id) },
+            userName: "\(review.first_name) \(review.last_name)",
             userRating: review.rating
         )
         return item
